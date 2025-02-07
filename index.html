@@ -16,7 +16,16 @@
         </div>
         
         <button onclick="generateQR()">Generate QR Code</button>
-        <button onclick="downloadQR()" id="downloadBtn" style="display:none;">Download QR Code</button> 
+        <div class="button" id="downloadBtn" data-tooltip="Size: Calculating..." onclick="downloadQR()" style="display:none;">
+            <div class="button-wrapper">
+                <div class="text">Download</div>
+                <span class="icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" width="2em" height="2em" preserveAspectRatio="xMidYMid meet" viewBox="0 0 24 24">
+                        <path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15V3m0 12l-4-4m4 4l4-4M2 17l.621 2.485A2 2 0 0 0 4.561 21h14.878a2 2 0 0 0 1.94-1.515L22 17"></path>
+                    </svg>
+                </span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -26,37 +35,54 @@
         let qrText = document.getElementById("qrText")
         let downloadBtn = document.getElementById("downloadBtn")
 
-        function generateQR(){
-            if(qrText.value.length > 0){
-                qrImage.src = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + qrText.value;
+        async function generateQR() {
+            if (qrText.value.length > 0) {
+                const qrUrl = "https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=" + encodeURIComponent(qrText.value);
+                qrImage.src = qrUrl;
                 imgBox.classList.add("show-img");
                 downloadBtn.style.display = "block";
-            }else{
-                qrText.classList.add('error');
-                setTimeout(()=>{
-                    qrText.classList.remove('error');
-                },1000);
+
+                try {
+                    const response = await fetch(qrUrl);
+                    const blob = await response.blob();
+                    const fileSizeInKB = (blob.size / 1024).toFixed(2);
+
+                    downloadBtn.setAttribute("data-tooltip", `Size: ${fileSizeInKB} KB`);
+                } catch (error) {
+                    console.error("Error fetching QR code:", error);
+                    downloadBtn.setAttribute("data-tooltip", "Size: Unknown");
+                }
+            } else {
+                qrText.classList.add("error");
+                setTimeout(() => {
+                    qrText.classList.remove("error");
+                }, 1000);
             }
         }
 
-        async function downloadQR(){
+
+        async function downloadQR() {
             const imageUrl = qrImage.src;
             const response = await fetch(imageUrl);  
             const blob = await response.blob();
             const url = URL.createObjectURL(blob);
+
+            const fileSizeInKB = (blob.size / 1024).toFixed(2);
+            const downloadBtn = document.getElementById("downloadBtn");
+
+            downloadBtn.setAttribute("data-tooltip", `Size: ${fileSizeInKB} KB`);
 
             const link = document.createElement('a');
             link.href = url;
             link.download = 'qr-code.png';
 
             document.body.appendChild(link);
-
             link.click();
-
             document.body.removeChild(link);
 
             URL.revokeObjectURL(url);
         }
+
 
     </script>
 
